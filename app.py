@@ -24,7 +24,7 @@ HF_TOKEN = os.getenv("HUGGINGFACEHUB_API_TOKEN", "")
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.llms import HuggingFaceHub
+from langchain_community.llms import HuggingFaceEndpoint
 from langchain_community.vectorstores import Chroma
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
@@ -46,17 +46,13 @@ embeddings = HuggingFaceEmbeddings(
 )
 
 # ─── LLM (free HuggingFace Hub) ───────────────────────────────────────────────
-llm_parameters = {
-    "max_new_tokens" : 512,
-    "temperature"    : 0.7,
-    "top_p"          : 0.95,
-    "do_sample"      : True,
-}
-
-llm = HuggingFaceHub(
-    repo_id                  = "mistralai/Mistral-7B-Instruct-v0.2",
+llm = HuggingFaceEndpoint(
+    repo_id          = "mistralai/Mistral-7B-Instruct-v0.2",
     huggingfacehub_api_token = HF_TOKEN,
-    model_kwargs             = llm_parameters,
+    max_new_tokens   = 512,
+    temperature      = 0.7,
+    top_p            = 0.95,
+    do_sample        = True,
 )
 
 # ─── Prompt Template ──────────────────────────────────────────────────────────
@@ -191,5 +187,9 @@ with gr.Blocks(
 
 
 if __name__ == "__main__":
-    demo.launch(share=True)  # prints a public URL valid for 72 hours
+    demo.launch(
+        server_name="0.0.0.0",   # accessible via Codespace port forwarding
+        server_port=7860,
+        share=False,             # avoid flaky gradio.live tunnel (404/504)
+    )
 

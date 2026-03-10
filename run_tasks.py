@@ -81,7 +81,7 @@ print("  TASK 3 – Embed Documents (HuggingFace Embeddings)")
 print("  📸 Screenshot this output → save as  embedding.png")
 print("═"*62)
 
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 embeddings = HuggingFaceEmbeddings(
     model_name    = "sentence-transformers/all-MiniLM-L6-v2",
@@ -93,7 +93,7 @@ sample_text   = splits[0].page_content
 sample_vector = embeddings.embed_query(sample_text)
 
 print(f"""
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 embeddings = HuggingFaceEmbeddings(
     model_name    = "sentence-transformers/all-MiniLM-L6-v2",

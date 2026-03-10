@@ -23,7 +23,7 @@ HF_TOKEN = os.getenv("HUGGINGFACEHUB_API_TOKEN", "")
 # ─── Imports ──────────────────────────────────────────────────────────────────
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.llms import HuggingFaceHub
 from langchain_community.vectorstores import Chroma
 from langchain.chains import RetrievalQA
@@ -115,22 +115,26 @@ def upload_pdf(file) -> str:
         return f"❌  Error processing PDF: {exc}"
 
 
-def answer_question(message: str, history: list) -> str:
+def answer_question(message: str, history: list) -> tuple:
     """Gradio callback: answer a user query using the RAG chain."""
     if not message.strip():
-        return ""
+        return history, ""
     if current_chain["chain"] is None:
-        return "⚠️  Please upload and index a PDF first."
+        history = history + [{"role": "user", "content": message},
+                             {"role": "assistant", "content": "⚠️  Please upload and index a PDF first."}]
+        return history, ""
     try:
         result  = current_chain["chain"]({"query": message})
         answer  = result["result"].strip()
         sources = result.get("source_documents", [])
         if sources:
             pages_used = sorted({doc.metadata.get("page", "?") for doc in sources})
-            answer += f"\n\n📄 *Source pages: {pages_used}*"
-        return answer
+            answer += f"\n\n📄 Source pages: {pages_used}"
     except Exception as exc:
-        return f"❌  Error: {exc}"
+        answer = f"❌  Error: {exc}"
+    history = history + [{"role": "user", "content": message},
+                         {"role": "assistant", "content": answer}]
+    return history, ""
 
 
 # ─── Gradio UI ────────────────────────────────────────────────────────────────
@@ -142,17 +146,16 @@ with gr.Blocks(
     gr.Markdown(
         """
         # 🔬 AI RAG Assistant – Quest Analytics
-        **Powered by LangChain + HuggingFace (`mistralai/Mistral-7B-Instruct-v0.2`)**
+        **Powered by LangChain + HuggingFace (mistralai/Mistral-7B-Instruct-v0.2)**
 
         **How to use:**
-        1. Upload a research paper PDF on the left
-        2. Click **📤 Index PDF** and wait for the confirmation
-        3. Type your question in the chat area on the right
+        1. Upload a research paper PDF on the left and click **📤 Index PDF**
+        2. Type your question and click **Send** (or press Enter)
         """
     )
 
     with gr.Row():
-        # ── Left panel – upload ──────────────────────────────────────────────
+        # ── Left panel – upload ───────────────────────────────────────────
         with gr.Column(scale=1):
             pdf_input     = gr.File(label="📁 Upload PDF", file_types=[".pdf"])
             upload_btn    = gr.Button("📤 Index PDF", variant="primary")
@@ -160,27 +163,36 @@ with gr.Blocks(
                 label="Status",
                 value="Upload a PDF to begin.",
                 interactive=False,
-                lines=2,
+                lines=3,
             )
 
-        # ── Right panel – chat ───────────────────────────────────────────────
+        # ── Right panel – chat ────────────────────────────────────────────
         with gr.Column(scale=2):
-            chatbot = gr.ChatInterface(
-                fn      = answer_question,
-                chatbot = gr.Chatbot(height=480, label="Chat with your Document"),
-                textbox = gr.Textbox(
+            chatbot  = gr.Chatbot(
+                label="Chat with your Document",
+                height=420,
+                type="messages",
+            )
+            with gr.Row():
+                question_box = gr.Textbox(
                     placeholder='e.g. "What this paper is talking about?"',
                     label="Your Question",
                     lines=2,
-                ),
-                title      = "",
-                retry_btn  = None,
-                undo_btn   = "↩ Undo",
-                clear_btn  = "🗑 Clear",
-            )
+                    scale=4,
+                )
+                send_btn = gr.Button("Send ➤", variant="primary", scale=1)
+            clear_btn = gr.Button("🗑 Clear chat", size="sm")
 
-    upload_btn.click(fn=upload_pdf, inputs=pdf_input, outputs=upload_status)
+    # ── Event wiring ─────────────────────────────────────────────────────
+    upload_btn.click(fn=upload_pdf,       inputs=pdf_input,
+                     outputs=upload_status)
+    send_btn.click(  fn=answer_question,  inputs=[question_box, chatbot],
+                     outputs=[chatbot, question_box])
+    question_box.submit(fn=answer_question, inputs=[question_box, chatbot],
+                        outputs=[chatbot, question_box])
+    clear_btn.click( fn=lambda: ([], ""), outputs=[chatbot, question_box])
 
 
 if __name__ == "__main__":
-    demo.launch(share=True)  # share=True prints a public URL
+    demo.launch(share=True)  # share=True prints a public ngrok URL
+

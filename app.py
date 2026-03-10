@@ -1,14 +1,11 @@
 """
 app.py – Standalone Gradio QA Bot
-Quest Analytics – AI RAG Assistant  (Free – HuggingFace)
+Quest Analytics – AI RAG Assistant  (Free – local HuggingFace models)
 
 Run:
-    python app.py
+        python app.py
 
 Then open the printed URL in your browser.
-Requires a FREE HuggingFace token in .env:
-  HUGGINGFACEHUB_API_TOKEN=hf_...
-Get one free at: https://huggingface.co/settings/tokens
 """
 
 import os, tempfile
@@ -16,21 +13,19 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Force huggingface_hub to use the new inference router endpoint.
-os.environ.setdefault("HF_INFERENCE_ENDPOINT", "https://router.huggingface.co")
-
-# ─── Credentials ──────────────────────────────────────────────────────────────
-# Free HuggingFace token – get yours at https://huggingface.co/settings/tokens
+# ─── Optional credentials ─────────────────────────────────────────────────────
+# Kept for compatibility, but the current QA bot runs fully locally.
 HF_TOKEN = os.getenv("HUGGINGFACEHUB_API_TOKEN", "")
 
 # ─── Imports ──────────────────────────────────────────────────────────────────
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.llms import HuggingFaceEndpoint
+from langchain_community.llms import HuggingFacePipeline
 from langchain_community.vectorstores import Chroma
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
+from transformers import pipeline
 import gradio as gr
 
 # ─── Text Splitter (shared) ───────────────────────────────────────────────────
@@ -48,15 +43,16 @@ embeddings = HuggingFaceEmbeddings(
     encode_kwargs = {"normalize_embeddings": True},
 )
 
-# ─── LLM (free HuggingFace Hub) ───────────────────────────────────────────────
-llm = HuggingFaceEndpoint(
-    repo_id          = "mistralai/Mistral-7B-Instruct-v0.2",
-    huggingfacehub_api_token = HF_TOKEN,
-    max_new_tokens   = 512,
-    temperature      = 0.7,
-    top_p            = 0.95,
-    do_sample        = True,
+# ─── LLM (free local Transformers pipeline) ──────────────────────────────────
+generation_pipeline = pipeline(
+    "text2text-generation",
+    model="google/flan-t5-base",
+    tokenizer="google/flan-t5-base",
+    max_new_tokens=256,
+    temperature=0.3,
 )
+
+llm = HuggingFacePipeline(pipeline=generation_pipeline)
 
 # ─── Prompt Template ──────────────────────────────────────────────────────────
 PROMPT_TEMPLATE = """
@@ -141,7 +137,7 @@ with gr.Blocks(
     gr.Markdown(
         """
         # 🔬 Task 6 – QA Bot Interface | Quest Analytics RAG Assistant
-        ### Powered by LangChain + HuggingFace (`mistralai/Mistral-7B-Instruct-v0.2`)
+        ### Powered by LangChain + local HuggingFace models (`google/flan-t5-base`)
         > **Assignment:** Upload the research PDF, then ask: *"What this paper is talking about?"*
 
         **Steps:** ① Upload PDF → ② Click Index PDF → ③ Type question → ④ Click Send

@@ -54,7 +54,7 @@ print(pages[0].page_content[:400])
 # ══════════════════════════════════════════════════════════════════════════════
 banner(2,
        "Apply Text Splitting Techniques",
-       "Splitting pages into 1000-char chunks (overlap=200) for LLM context",
+       "tSplitting pages into 1000-char chunks (overlap=200) for LLM contex",
        "code_splitter.png")
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -199,7 +199,7 @@ for i, doc in enumerate(docs):
 # ══════════════════════════════════════════════════════════════════════════════
 banner(6,
        "Construct a QA Bot Using LangChain + LLM + Gradio",
-       "Gradio web UI wiring PyPDFLoader, ChromaDB, RetrievalQA & Mistral-7B LLM",
+    "Gradio web UI wiring PyPDFLoader, ChromaDB, RetrievalQA & a local FLAN-T5 LLM",
        "QA_bot.png")
 
 print("  ── How to get the Task 6 screenshot ─────────────────────── ")

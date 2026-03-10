@@ -16,6 +16,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Force huggingface_hub to use the new inference router endpoint.
+os.environ.setdefault("HF_INFERENCE_ENDPOINT", "https://router.huggingface.co")
+
 # ─── Credentials ──────────────────────────────────────────────────────────────
 # Free HuggingFace token – get yours at https://huggingface.co/settings/tokens
 HF_TOKEN = os.getenv("HUGGINGFACEHUB_API_TOKEN", "")

@@ -1,0 +1,16 @@
+#Remove env file from git tracking and being pushed to remote repository
+.env
+
+# Do NOT ignore .env.example – it's a template with no real secrets
+# .env.example   ← intentionally commented out so it IS tracked
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Large PDF files
+*.pdf
+
+# ChromaDB local data
+chroma_db/

@@ -120,9 +120,7 @@ def answer_question(message: str, history: list) -> tuple:
     if not message.strip():
         return history, ""
     if current_chain["chain"] is None:
-        history = history + [{"role": "user", "content": message},
-                             {"role": "assistant", "content": "⚠️  Please upload and index a PDF first."}]
-        return history, ""
+        return history + [(message, "⚠️  Please upload and index a PDF first.")], ""
     try:
         result  = current_chain["chain"]({"query": message})
         answer  = result["result"].strip()
@@ -132,50 +130,49 @@ def answer_question(message: str, history: list) -> tuple:
             answer += f"\n\n📄 Source pages: {pages_used}"
     except Exception as exc:
         answer = f"❌  Error: {exc}"
-    history = history + [{"role": "user", "content": message},
-                         {"role": "assistant", "content": answer}]
-    return history, ""
+    return history + [(message, answer)], ""
 
 
 # ─── Gradio UI ────────────────────────────────────────────────────────────────
 with gr.Blocks(
     title="AI RAG Assistant – Quest Analytics",
     theme=gr.themes.Soft(primary_hue="blue"),
+    api_open=False,   # ← disables schema introspection that causes the TypeError
 ) as demo:
 
     gr.Markdown(
         """
-        # 🔬 AI RAG Assistant – Quest Analytics
-        **Powered by LangChain + HuggingFace (mistralai/Mistral-7B-Instruct-v0.2)**
+        # 🔬 Task 6 – QA Bot Interface | Quest Analytics RAG Assistant
+        ### Powered by LangChain + HuggingFace (`mistralai/Mistral-7B-Instruct-v0.2`)
+        > **Assignment:** Upload the research PDF, then ask: *"What this paper is talking about?"*
 
-        **How to use:**
-        1. Upload a research paper PDF on the left and click **📤 Index PDF**
-        2. Type your question and click **Send** (or press Enter)
+        **Steps:** ① Upload PDF → ② Click Index PDF → ③ Type question → ④ Click Send
         """
     )
 
     with gr.Row():
         # ── Left panel – upload ───────────────────────────────────────────
         with gr.Column(scale=1):
-            pdf_input     = gr.File(label="📁 Upload PDF", file_types=[".pdf"])
+            gr.Markdown("### 📁 Step 1 – Upload Your PDF")
+            pdf_input     = gr.File(label="Upload PDF", file_types=[".pdf"])
             upload_btn    = gr.Button("📤 Index PDF", variant="primary")
             upload_status = gr.Textbox(
-                label="Status",
-                value="Upload a PDF to begin.",
+                label="Indexing Status",
+                value="⬆️  Upload a PDF to begin.",
                 interactive=False,
                 lines=3,
             )
 
         # ── Right panel – chat ────────────────────────────────────────────
         with gr.Column(scale=2):
+            gr.Markdown("### 💬 Step 2 – Ask Questions About the Document")
             chatbot  = gr.Chatbot(
-                label="Chat with your Document",
+                label="RAG Assistant – Document Q&A",
                 height=420,
-                type="messages",
             )
             with gr.Row():
                 question_box = gr.Textbox(
-                    placeholder='e.g. "What this paper is talking about?"',
+                    placeholder='Type your question, e.g. "What this paper is talking about?"',
                     label="Your Question",
                     lines=2,
                     scale=4,
@@ -184,15 +181,15 @@ with gr.Blocks(
             clear_btn = gr.Button("🗑 Clear chat", size="sm")
 
     # ── Event wiring ─────────────────────────────────────────────────────
-    upload_btn.click(fn=upload_pdf,       inputs=pdf_input,
+    upload_btn.click(fn=upload_pdf,         inputs=pdf_input,
                      outputs=upload_status)
-    send_btn.click(  fn=answer_question,  inputs=[question_box, chatbot],
+    send_btn.click(  fn=answer_question,    inputs=[question_box, chatbot],
                      outputs=[chatbot, question_box])
     question_box.submit(fn=answer_question, inputs=[question_box, chatbot],
                         outputs=[chatbot, question_box])
-    clear_btn.click( fn=lambda: ([], ""), outputs=[chatbot, question_box])
+    clear_btn.click( fn=lambda: ([], ""),   outputs=[chatbot, question_box])
 
 
 if __name__ == "__main__":
-    demo.launch(share=True)  # share=True prints a public ngrok URL
+    demo.launch(share=True)  # prints a public URL valid for 72 hours
 

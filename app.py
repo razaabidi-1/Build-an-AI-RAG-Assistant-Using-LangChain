@@ -137,7 +137,6 @@ def answer_question(message: str, history: list) -> tuple:
 with gr.Blocks(
     title="AI RAG Assistant – Quest Analytics",
     theme=gr.themes.Soft(primary_hue="blue"),
-    api_open=False,   # ← disables schema introspection that causes the TypeError
 ) as demo:
 
     gr.Markdown(
@@ -182,12 +181,13 @@ with gr.Blocks(
 
     # ── Event wiring ─────────────────────────────────────────────────────
     upload_btn.click(fn=upload_pdf,         inputs=pdf_input,
-                     outputs=upload_status)
+                     outputs=upload_status, api_name=False)
     send_btn.click(  fn=answer_question,    inputs=[question_box, chatbot],
-                     outputs=[chatbot, question_box])
+                     outputs=[chatbot, question_box], api_name=False)
     question_box.submit(fn=answer_question, inputs=[question_box, chatbot],
-                        outputs=[chatbot, question_box])
-    clear_btn.click( fn=lambda: ([], ""),   outputs=[chatbot, question_box])
+                        outputs=[chatbot, question_box], api_name=False)
+    clear_btn.click( fn=lambda: ([], ""),   outputs=[chatbot, question_box],
+                     api_name=False)
 
 
 if __name__ == "__main__":
